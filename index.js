@@ -5,6 +5,7 @@ const url = 'mongodb://localhost:27017/nucampsite';
 const connect = mongoose.connect(url, {
     //don't worry about these, they are here because of recent updates to mongodb
     useCreateIndex: true,
+    useFindAndModify: false,
     useNewUrlParser: true,
     useUnifiedTopology: true
 });
@@ -13,18 +14,33 @@ connect.then(() => {
 
     console.log('Connected correctly to server');
 
-    const newCampsite = new Campsite({
+    Campsite.create({
         name: 'React Lake Campground',
         description: 'test'
-    });
-
-    newCampsite.save()
+    })
     .then(campsite => {
         console.log(campsite);
-        return Campsite.find();
+
+        return Campsite.findByIdAndUpdate(campsite._id, {
+            $set: { description: 'Updated Test Document' }
+        }, {
+            //when true, this will return the updated doc instead of the original
+            new: true
+        });
     })
-    .then(campsites => {
-        console.log(campsites);
+    .then(campsite => {
+        console.log(campsite);
+
+        campsite.comments.push({
+            rating: 5,
+            text: 'What a magnificent view!',
+            author: 'Tinus Lorvaldes'
+        });
+
+        return campsite.save();
+    })
+    .then(campsite => {
+        console.log(campsite);
         return Campsite.deleteMany();
     })
     .then(() => {
