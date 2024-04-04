@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
-const Campsite = require('./models/campsite');
+const Comment = require('./models/comment');
 
-const url = 'mongodb://localhost:27017/nucampsite';
+const url = 'mongodb://localhost:27017/test';
 const connect = mongoose.connect(url, {
     //don't worry about these, they are here because of recent updates to mongodb
     useCreateIndex: true,
@@ -10,44 +10,30 @@ const connect = mongoose.connect(url, {
     useUnifiedTopology: true
 });
 
-connect.then(() => {
+connect.then(async () => {
+    try {
+        const newComment = new Comment({});
+        await newComment.save();
+        console.log('created new comment', newComment);
+        const id = newComment._id.toString();
+        await Comment.findOneAndUpdate(
+            { _id: id }, 
+            { 
+                $push: { 
+                    replies: {
+                        username: "username",
+                        comment: "comment",
+                        displayPic: "image",
+                        commentId: id
+                    } 
+                } 
+            }
+        );
 
-    console.log('Connected correctly to server');
+        const updatedComment = await Comment.findById(id);
+        console.log('updated comment:', updatedComment);
 
-    Campsite.create({
-        name: 'React Lake Campground',
-        description: 'test'
-    })
-    .then(campsite => {
-        console.log(campsite);
-
-        return Campsite.findByIdAndUpdate(campsite._id, {
-            $set: { description: 'Updated Test Document' }
-        }, {
-            //when true, this will return the updated doc instead of the original
-            new: true
-        });
-    })
-    .then(campsite => {
-        console.log(campsite);
-
-        campsite.comments.push({
-            rating: 5,
-            text: 'What a magnificent view!',
-            author: 'Tinus Lorvaldes'
-        });
-
-        return campsite.save();
-    })
-    .then(campsite => {
-        console.log(campsite);
-        return Campsite.deleteMany();
-    })
-    .then(() => {
-        return mongoose.connection.close();
-    })
-    .catch(err => {
-        console.log(err);
-        mongoose.connection.close();
-    });
+    } catch (err) {
+        console.error('Error inserting comment:', err);
+    }
 });
